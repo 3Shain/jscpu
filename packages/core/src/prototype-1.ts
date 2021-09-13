@@ -10,19 +10,16 @@ import {
   forwards,
 } from "./instrs/wire";
 import { Bus } from "./instrs/bus";
-import { programCounter, ringCounter } from "./instrs/counter";
-import { shiftRegsiter } from "./instrs/register";
+import { programCounter2, ringCounter } from "./instrs/counter";
+import { generalRegister } from "./instrs/register";
 import { arthmeticUnit } from "./instrs/alu";
 import { decodeMatch } from "./instrs/helpers";
-import { memory } from "./instrs/memory";
 import { groupFlip, invertFlip } from "./instrs/flipflop";
 import { logDecimal, logWires } from "./shared";
+import { mmu16 } from "./instrs/mmu";
 
 export function prototype1(ROM: Uint8Array) {
   const WIDTH = 16;
-
-  const ROM_HIGH = ROM.filter((_, i) => i & 1);
-  const ROM_LOW = ROM.filter((_, i) => (i & 1) === 0);
 
   const data_bus = new Bus(WIDTH);
 
@@ -35,21 +32,24 @@ export function prototype1(ROM: Uint8Array) {
       LOAD_A,
       LOAD_B,
       COUNT_PC,
+      COUNT_PC2,
       LOAD_PC,
       ENABLE_PC,
       WD,
       LOAD_MR,
       LOAD_AU,
       ENABLE_AU,
-      SUB_AU
+      SUB_AU,
+      MASK_HIGH
     },
     flip: flipCu,
     intercept,
   } = controlUnit(forwards(() => ir.OUT, WIDTH));
 
-  const pc = programCounter(
+  const pc = programCounter2(
     {
-      CT: COUNT_PC,
+      CT: or(COUNT_PC, COUNT_PC2),
+      CT2: COUNT_PC2,
       LD: LOAD_PC,
       IN: data_bus.WIRES,
       EN: ENABLE_PC,
@@ -58,7 +58,7 @@ export function prototype1(ROM: Uint8Array) {
   );
   data_bus.joint(pc.TRI_STATE_OUT);
 
-  const ir = shiftRegsiter(
+  const ir = generalRegister(
     {
       LD: LOAD_IR,
       EN: LOW, // not used tri-state ...
@@ -68,7 +68,7 @@ export function prototype1(ROM: Uint8Array) {
   );
 
   /** memory */
-  const mar = shiftRegsiter(
+  const mar = generalRegister(
     {
       LD: LOAD_MR,
       EN: LOW, // not used tri-state...
@@ -76,31 +76,22 @@ export function prototype1(ROM: Uint8Array) {
     },
     { size: WIDTH }
   );
-  const memLow = memory(
+
+  const mem = mmu16(
     {
       EN: ENABLE_MR,
       WD: WD,
-      A: mar.OUT.slice(0, 7),
-      D: data_bus.WIRES.slice(0, 8),
-      ROM: ROM_LOW,
+      A: mar.OUT,
+      D: data_bus.WIRES,
+      ROM,
+      MASK_HIGH,
     },
     { length: 0xffff }
   );
-  data_bus.joint([...memLow.TRI_STATE_OUT, ...new Array(8).fill(HIZ)]);
-  const memHigh = memory(
-    {
-      EN: ENABLE_MR,
-      WD: WD,
-      A: mar.OUT.slice(0, 7),
-      D: data_bus.WIRES.slice(8),
-      ROM: ROM_HIGH,
-    },
-    { length: 0xffff }
-  );
-  data_bus.joint([...new Array(8).fill(HIZ), ...memHigh.TRI_STATE_OUT]);
+  data_bus.joint(mem.TRI_STATE_OUT);
 
   /** registers */
-  const accumulator = shiftRegsiter(
+  const accumulator = generalRegister(
     {
       LD: LOAD_A,
       EN: ENABLE_A,
@@ -109,11 +100,12 @@ export function prototype1(ROM: Uint8Array) {
       SHL: LOW,
       SHR: LOW,
       D: data_bus.WIRES,
+      MASK_HIGH
     },
     { size: WIDTH }
   );
   data_bus.joint(accumulator.TRI_STATE_OUT);
-  const b_reg = shiftRegsiter(
+  const b_reg = generalRegister(
     {
       LD: LOAD_B,
       EN: ENABLE_B,
@@ -122,6 +114,7 @@ export function prototype1(ROM: Uint8Array) {
       SHL: LOW,
       SHR: LOW,
       D: data_bus.WIRES,
+      MASK_HIGH
     },
     { size: WIDTH }
   );
@@ -132,7 +125,7 @@ export function prototype1(ROM: Uint8Array) {
     B: data_bus.WIRES,
     SUB: SUB_AU,
     EN: ENABLE_AU,
-    LD: LOAD_AU
+    LD: LOAD_AU,
   });
   data_bus.joint(au.TRI_STATE_OUTPUT);
 
@@ -146,8 +139,7 @@ export function prototype1(ROM: Uint8Array) {
       invertFlip(pc),
       invertFlip(ir),
       invertFlip(mar),
-      invertFlip(memHigh),
-      invertFlip(memLow),
+      invertFlip(mem),
       invertFlip(accumulator),
       invertFlip(b_reg),
       invertFlip(au)
@@ -160,10 +152,6 @@ export function prototype1(ROM: Uint8Array) {
       logDecimal(b_reg.OUT);
       console.log("PC");
       logDecimal(pc.OUT);
-    },
-    MEM: {
-      LOW: memLow.MEM,
-      HIGH: memHigh.MEM,
     },
   };
 }
@@ -192,16 +180,19 @@ function controlUnit([
   } = ringCounter(
     {
       RESET: forward(() => RESET_RC),
-      COUNT: forward(() => COUNT_PC),
+      COUNT: forward(() => COUNT_RC),
     },
     { size: 7 }
   ); // maximum 12 t-cycle
 
   /** instructions */
 
-  const instcode = [i0, i1, i2, i3, i4, i5, i6, i7];
+  const instcode = [i0, i1, i2, i3, i4, i5, i6];
   // initial: 0 0 0 0
   const HALT = decodeMatch(instcode, 0b001111);
+  const NOP = decodeMatch(instcode, 0b011011);
+
+  const MASK_HIGH = i7;
 
   const MOV_IMM_REG = decodeMatch(instcode, 0b001000);
   const MOV_REG_REG = decodeMatch(instcode, 0b001001);
@@ -223,16 +214,24 @@ function controlUnit([
 
   /** control matrix */
 
-  const ESCAPE = or(
-    and(T3, MOV_REG_REG) /* ESCAPE */,
-    and(T6, MOV_MEM_REG) /** ESCAPE */,
-    and(T6, MOV_REG_MEM) /** ESCAPE */,
+  const ESCAPE_PC2 = or(
+    and(T3, MOV_REG_REG),
+    and(T5, MOV_IMM_REG, not(MASK_HIGH)),
+    and(T6, MOV_MEM_REG, not(MASK_HIGH)),
+    and(T6, MOV_REG_MEM, not(MASK_HIGH)),
     and(T4, ADD),
     and(T4, SUB)
   );
 
-  const RESET_RC = or(HALT, and(T5, MOV_IMM_REG), ESCAPE);
-  const COUNT_PC = and(not(HALT), not(RESET_RC));
+  const ESCAPE_PC1 = or(
+    and(T3, NOP),
+    and(T5, MOV_IMM_REG, MASK_HIGH),
+    and(T6, MOV_MEM_REG, MASK_HIGH),
+    and(T6, MOV_REG_MEM, MASK_HIGH)
+  );
+
+  const RESET_RC = or(HALT, and(T5, MOV_IMM_REG), ESCAPE_PC2, ESCAPE_PC1);
+  const COUNT_RC = and(not(HALT), not(RESET_RC));
 
   const controls = {
     LOAD_PC: LOW,
@@ -242,13 +241,13 @@ function controlUnit([
       and(T4, MOV_MEM_REG),
       and(T4, MOV_REG_MEM)
     ),
-    COUNT_PC: or(
-      ESCAPE,
+    COUNT_PC2: or(
+      ESCAPE_PC2,
       and(T3, MOV_IMM_REG),
-      and(T5, MOV_IMM_REG),
       and(T3, MOV_MEM_REG),
       and(T3, MOV_REG_MEM)
     ),
+    COUNT_PC: ESCAPE_PC1,
     LOAD_IR: T2,
     LOAD_A: or(
       and(T5, MOV_IMM_REG, TARGET_A),
@@ -282,7 +281,7 @@ function controlUnit([
     ),
     ENABLE_AU: or(and(T4, ADD), and(T4, SUB)),
     SUB_AU: and(T3, SUB),
-    LOAD_AU: or(and(T3,ADD),and(T3,SUB)),
+    LOAD_AU: or(and(T3, ADD), and(T3, SUB)),
     ENABLE_LU: LOW,
     LOAD_MR: or(
       and(not(HALT), T1),
@@ -303,6 +302,7 @@ function controlUnit([
       LOW, //?
       and(T6, MOV_REG_MEM)
     ),
+    MASK_HIGH: and(MASK_HIGH, not(T1), not(T2)),
   };
 
   return {
@@ -315,7 +315,7 @@ function controlUnit([
       logWires(
         [
           RESET_RC,
-          COUNT_PC,
+          COUNT_RC,
           controls.ENABLE_PC,
           controls.LOAD_MR,
           controls.ENABLE_MR,
@@ -327,8 +327,8 @@ function controlUnit([
           controls.ENABLE_B,
         ],
         [
-          "RESETPC",
-          "COUNTPC",
+          "RESET_RC",
+          "COUNT_RC",
           "ENABLE_PC",
           "LOAD_MR",
           "ENABLE_MR",

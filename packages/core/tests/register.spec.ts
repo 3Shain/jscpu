@@ -1,13 +1,13 @@
 import { suite } from "uvu";
 import { HIGH, LOW } from "../src/instrs/wire";
-import { shiftRegsiter } from "../src/instrs/register";
+import { generalRegister } from "../src/instrs/register";
 import { WireState } from "../src/instrs/types";
 import { logWires } from "../src/shared";
 
 const test = suite("register");
 
 test("shoud work", () => {
-  const register = shiftRegsiter(
+  const register = generalRegister(
     {
       LD: LOW,
       SHR: LOW,

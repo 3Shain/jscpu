@@ -17,10 +17,11 @@ const go = prototype1(
 //     0x10, // constant 0x108f
 //   ])
 new Uint8Array([
-        0b001000,
+        0b10001000,
         0b00100000,
         0xfd,
-        0x7, // MOV B, 0x7fd
+        // 0x7, // MOV B, 0x7fd
+        0b11011,
         0b001001,
         0b00010010, // MOV A,B
         // 0b001011,

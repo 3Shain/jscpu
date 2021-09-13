@@ -7,13 +7,13 @@ export function bitRegister({ LD, EN, D }: { LD: Wire; EN: Wire; D: Wire }) {
   return {
     OUT: flip,
     TRI_STATE_OUTPUT: trigate(flip, EN),
-    flip(x){
+    flip(x) {
       return flip.flip(x);
-    }
+    },
   };
 }
 
-export function shiftRegsiter(
+export function generalRegister(
   {
     LD,
     EN,
@@ -22,6 +22,7 @@ export function shiftRegsiter(
     RTR = LOW,
     SHL = LOW,
     SHR = LOW,
+    MASK_HIGH = LOW,
   }: {
     LD: Wire;
     EN: Wire;
@@ -30,6 +31,7 @@ export function shiftRegsiter(
     RTR?: Wire;
     SHL?: Wire;
     SHR?: Wire;
+    MASK_HIGH?: Wire;
   },
   {
     size,
@@ -37,6 +39,12 @@ export function shiftRegsiter(
     size: number;
   }
 ) {
+  D = D.map((x, i) => {
+    if (i > 7) {
+      return and(x, not(MASK_HIGH));
+    }
+    return x;
+  });
   const REGS: JKFlipflop[] = new Array(size).fill(null).map((_, i) => {
     const flipflop = new JKFlipflop(
       forward(() =>

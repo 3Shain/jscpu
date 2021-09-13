@@ -18,7 +18,6 @@ Use `tick()` to create a clock cycle.
 
 * 16-bits CPU. It's working.
 * Up to 64KB RAM.
-    * Aligned access only.
 * 2 general purpose register. (can expand easily).
 * Variable instruction cycle. (from 2 to IDK)
 * Variable machine code length. (from 2 to IDK)
@@ -32,7 +31,8 @@ Current it can only do:
 #### Layout
 * 2*_n_ bytes
 * 1st byte : instruction
-* 2n byte : register address (can be 0 if no register involved)(ok I mean wasted)
+    * 1st bit: 8 bit mode (for instructions involving immediate/memory address)
+* 2n byte : register address
     * 1st 4-bits is destination, followed by 4-bits source.
     * Reg A: 0b0001
     * Reg B: 0b0010
@@ -41,6 +41,11 @@ Current it can only do:
 #### HALT
 ```jsx
 0b00001111,<not-used>
+```
+
+#### NOP
+```jsx
+0b00011011
 ```
 
 #### MOV [dest],[source]

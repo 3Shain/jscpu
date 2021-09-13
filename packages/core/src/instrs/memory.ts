@@ -57,6 +57,7 @@ export function memory(
         s[addr] = sampled;
       };
     },
+    OUT: pa,
     TRI_STATE_OUT: liftS(trigate, pa, EN),
     MEM: s,
   };

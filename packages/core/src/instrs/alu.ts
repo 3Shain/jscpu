@@ -1,8 +1,8 @@
 import { groupFlip } from "./flipflop";
-import { bitRegister, shiftRegsiter } from "./register";
+import { bitRegister, generalRegister } from "./register";
 import { and, LOW, not, Wire, xor, or, liftS, trigate } from "./wire";
 
-function fullAdder(a: Wire, b: Wire, c: Wire) {
+export function fullAdder(a: Wire, b: Wire, c: Wire) {
   return {
     RESULT: xor(a, b, c),
     CARRY: or(and(a, b), and(b, c), and(a, c)),
@@ -31,7 +31,7 @@ export function arthmeticUnit({
 
   const result = fas.map((x) => x.RESULT);
 
-  const buffer = shiftRegsiter(
+  const buffer = generalRegister(
     {
       LD,
       EN,
