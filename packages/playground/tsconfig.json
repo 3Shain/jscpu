@@ -1,0 +1,16 @@
+{
+  "ts-node": {
+    "transpileOnly": true,
+    "compilerOptions": {
+      "module": "commonjs"
+    },
+    "include": ["tests/**/*"]
+  },
+  "extends": "../../tsconfig.base.json",
+  "include": [
+    "src/**/*"
+  ],
+  "compilerOptions": {
+    "baseUrl": "."
+  }
+}

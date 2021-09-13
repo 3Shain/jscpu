@@ -1,0 +1,11 @@
+{
+    "name": "jscpu-playground",
+    "author": {
+        "name": "3Shain"
+    },
+    "description": "jscpu",
+    "license": "MIT",
+    "devDependencies": {
+        "vite": "^2.5.6"
+    }
+}

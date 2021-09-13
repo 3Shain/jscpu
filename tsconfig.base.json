@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "module": "ESNext",
+    "target": "ESNext",
+    "moduleResolution": "node",
+    "allowJs": false,
+    "checkJs": false,
+    "isolatedModules": true,
+    "experimentalDecorators": true,
+    "baseUrl": "./",
+    "paths": {
+      "core": ["packages/core/src/index.ts"]
+    }
+  }
+}
