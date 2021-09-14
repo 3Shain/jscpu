@@ -45,8 +45,14 @@ export function mmu16(
   const lowHalf = memory(
     {
       A: OFFSET_ADD_ONE,
-      D: D.slice(0, 8),
-      WD,
+      D: lift(
+        (a, b) => {
+          return or(and(b, UNALIGNED), and(a, not(UNALIGNED)));
+        },
+        D.slice(0, 8),
+        D.slice(8)
+      ),
+      WD: and(WD, not(and(UNALIGNED, MASK_HIGH))),
       EN,
       ROM: ROM_LOW,
     },
@@ -57,8 +63,14 @@ export function mmu16(
   const highHalf = memory(
     {
       A: OFFSET,
-      D: D.slice(8),
-      WD: and(WD, not(MASK_HIGH)),
+      D: lift(
+        (a, b) => {
+          return or(and(a, UNALIGNED), and(b, not(UNALIGNED)));
+        },
+        D.slice(0, 8),
+        D.slice(8)
+      ),
+      WD: and(WD, or(not(MASK_HIGH), and(MASK_HIGH, UNALIGNED))),
       EN,
       ROM: ROM_HIGH,
     },
@@ -88,5 +100,6 @@ export function mmu16(
       ...liftS(trigate, LOW_OUT, EN),
       ...liftS(trigate, HIGH_OUT, EN),
     ],
+    MEM: [lowHalf.MEM, highHalf.MEM],
   };
 }

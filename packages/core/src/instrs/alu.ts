@@ -1,6 +1,6 @@
 import { groupFlip } from "./flipflop";
 import { bitRegister, generalRegister } from "./register";
-import { and, LOW, not, Wire, xor, or, liftS, trigate } from "./wire";
+import { and, LOW, not, Wire, xor, or, liftS, trigate, HIGH } from "./wire";
 
 export function fullAdder(a: Wire, b: Wire, c: Wire) {
   return {
@@ -10,23 +10,35 @@ export function fullAdder(a: Wire, b: Wire, c: Wire) {
 }
 
 export function arthmeticUnit({
-  A,
-  B,
+  A: B,
+  B: A,
   SUB,
   EN,
   LD,
+  ONE = LOW,
 }: {
   A: Wire[];
   B: Wire[];
   SUB: Wire;
   EN: Wire;
   LD: Wire;
+  ONE?: Wire;
 }) {
   const size = A.length;
-  const init = fullAdder(A[0], xor(B[0], SUB), SUB);
+  const init = fullAdder(
+    A[0],
+    xor(or(and(ONE, HIGH), and(B[0], not(ONE))), SUB),
+    SUB
+  );
   const fas = [init];
   for (let i = 1; i < size; i++) {
-    fas.push(fullAdder(A[i], xor(B[i], SUB), fas[i - 1].CARRY));
+    fas.push(
+      fullAdder(
+        A[i],
+        xor(or(and(ONE, LOW), and(B[i], not(ONE))), SUB),
+        fas[i - 1].CARRY
+      )
+    );
   }
 
   const result = fas.map((x) => x.RESULT);
@@ -45,11 +57,23 @@ export function arthmeticUnit({
     EN,
     D: xor(fas[size - 1].CARRY, SUB),
   });
+  const zflag = bitRegister({
+    LD,
+    EN,
+    D: not(or(LOW, LOW, ...result)),
+  });
+  const nzflag = bitRegister({
+    LD,
+    EN,
+    D: or(LOW, LOW, ...result),
+  });
 
   return {
-    ...groupFlip(buffer, cflag),
+    ...groupFlip(buffer, cflag, zflag, nzflag),
     TRI_STATE_OUTPUT: buffer.TRI_STATE_OUT,
-    C_FLAG: cflag.TRI_STATE_OUTPUT,
+    C_FLAG: cflag.OUT,
+    Z_FLAG: zflag.OUT,
+    NZ_FLAG: nzflag.OUT,
   };
 }
 

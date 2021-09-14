@@ -8,7 +8,7 @@ export function logWires(wires: Wire[], tags?: string[]) {
   );
 }
 
-export function logDecimal(wires: Wire[]) {
+export function logHex(wires: Wire[]) {
   console.log(
     wires
       .map((x, i) => (x.sample() & 0b1) << i)
