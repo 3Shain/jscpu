@@ -2,7 +2,7 @@ import { SampleWire, WireState } from "./types";
 
 let TIME = 0;
 
-export function incTime(){
+export function incTime() {
   TIME++;
 }
 
@@ -11,9 +11,9 @@ export class Wire {
 
   history: WireState;
   time = -1;
-  
-  sample(){
-    if(this.time!=TIME){
+
+  sample() {
+    if (this.time != TIME) {
       this.time = TIME;
       this.history = this._sample();
     }
@@ -83,7 +83,7 @@ export function or(a: Wire, b: Wire, ...wires: Wire[]): Wire {
   if (wires.length) {
     return or(or(a, b), wires[0], ...wires.slice(1));
   }
-  return new Wire(() => (a.sample() | b.sample()) & 0b11);
+  return new Wire(() => a.sample() | b.sample());
 }
 
 export function xor(a: Wire, b: Wire, ...wires: Wire[]): Wire {
@@ -98,11 +98,23 @@ export function not(a: Wire): Wire {
 }
 
 export function forward(ref: () => Wire): Wire {
-  return new Wire(() => ref().sample());
+  let refMemo: Wire = null;
+  return new Wire(() => {
+    if (refMemo === null) {
+      refMemo = ref();
+    }
+    return refMemo.sample();
+  });
 }
 
-export function forwards(ref: () => Wire[], length: number): Wire[] {
-  return new Array(length).fill(null).map((x, i) => {
-    return new Wire(() => ref()[i].sample());
+export function forwards(refs: () => Wire[], length: number): Wire[] {
+  let refsMemo: Wire[] = null;
+  return new Array(length).fill(null).map((_, i) => {
+    return new Wire(() => {
+      if (refsMemo === null) {
+        refsMemo = refs();
+      }
+      return refsMemo[i].sample();
+    });
   });
 }

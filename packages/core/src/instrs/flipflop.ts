@@ -1,5 +1,5 @@
 import { Flippable, Settable, WireState } from "./types";
-import { and, incTime, not, or, Wire } from "./wire";
+import { and, forward, incTime, not, or, Wire } from "./wire";
 
 const noop = () => {};
 
@@ -35,9 +35,13 @@ export class Flipflop extends Wire implements Flippable, Settable {
 export class JKFlipflop extends Flipflop {
   constructor(J: Wire, K: Wire) {
     super(
-      new Wire(() => {
-        return or(and(J, not(this)), and(not(K), this)).sample();
-      })
+      or(
+        and(J, not(forward(() => this))),
+        and(
+          not(K),
+          forward(() => this)
+        )
+      )
     );
   }
 }

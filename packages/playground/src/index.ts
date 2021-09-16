@@ -10,7 +10,7 @@ const program = new Uint8Array([
   // 0b00000001,
   0b1000,
   0b00100000,
-  12,
+  16,
   0,
   // -> call fib
   // mov c, [fib]
@@ -181,9 +181,7 @@ const fib = new Uint8Array([
 // program
 program.set(fib, 0x100);
 
-const go = prototype1(
-  program
-);
+const go = prototype1(program);
 go.intercept();
 
 // oneTick(go);
@@ -208,13 +206,28 @@ function startCounter(fn: () => void) {
       return;
     }
     fn();
+    fn();
+    fn();
+    fn();
+    fn();
+    fn();
+    fn();
+    fn();
+    fn();
+    fn();
+    fn();
+    fn();
+    fn();
+    fn();
+    fn();
+    fn();
     const g = performance.now();
     if (g - lastlog > 1000) {
       freq2 = freq;
       freq = 0;
       lastlog = g;
     } else {
-      freq++;
+      freq += 16;
     }
     channel.port1.postMessage(undefined);
   };

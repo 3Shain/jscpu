@@ -113,11 +113,10 @@ export function simpleRegister(
     return x;
   });
   const REGS: JKFlipflop[] = new Array(size).fill(null).map((_, i) => {
-    const flipflop = new JKFlipflop(
-      forward(() => and(D[i], LD)),
-      forward(() => and(not(D[i]), LD))
+    return new JKFlipflop(
+      and(D[i], LD),
+      and(not(D[i]), LD)
     );
-    return flipflop;
   });
   return {
     ...groupFlip(...REGS),
