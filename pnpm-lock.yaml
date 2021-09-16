@@ -28,8 +28,10 @@ importers:
   packages/playground:
     specifiers:
       vite: ^2.5.6
+      vite-plugin-cross-origin-isolation: ^0.1.1
     devDependencies:
       vite: 2.5.7
+      vite-plugin-cross-origin-isolation: 0.1.1
 
 packages:
 
@@ -241,6 +243,10 @@ packages:
       kleur: 4.1.4
       sade: 1.7.4
       totalist: 2.0.0
+    dev: true
+
+  /vite-plugin-cross-origin-isolation/0.1.1:
+    resolution: {integrity: sha512-egyW4CSWORimC2NbIJDJ8Ga1eoUBscFDvY9oLYBfiKHdYHMCiOiIeqtXbgv/2V7aYs//KIP34H2eQw1hEBARwg==}
     dev: true
 
   /vite/2.5.7:

@@ -1,5 +1,5 @@
 import { and, forward, HIGH, liftS, LOW, not, or, trigate, Wire } from "./wire";
-import { JKFlipflop } from "./flipflop";
+import { groupFlip, JKFlipflop } from "./flipflop";
 import { WireState } from "./types";
 
 export function bitRegister({ LD, EN, D }: { LD: Wire; EN: Wire; D: Wire }) {
@@ -69,10 +69,58 @@ export function generalRegister(
     return flipflop;
   });
   return {
-    flip(x: WireState) {
-      const g = REGS.map((xx) => xx.flip(x));
-      return () => g.forEach((x) => x());
+    ...groupFlip(...REGS),
+    set(value: number) {
+      for (let i = 0; i < size; i++) {
+        if ((value >> i) & 1) {
+          REGS[i].set();
+        } else {
+          REGS[i].reset();
+        }
+      }
     },
+    TRI_STATE_OUT: liftS(trigate, REGS, EN),
+    OUT: REGS,
+  };
+}
+
+export function simpleRegister(
+  {
+    LD,
+    EN,
+    D,
+    MASK_HIGH = LOW,
+  }: {
+    LD: Wire;
+    EN: Wire;
+    D: Wire[];
+    RTL?: Wire;
+    RTR?: Wire;
+    SHL?: Wire;
+    SHR?: Wire;
+    MASK_HIGH?: Wire;
+  },
+  {
+    size,
+  }: {
+    size: number;
+  }
+) {
+  D = D.map((x, i) => {
+    if (i > 7) {
+      return and(x, not(MASK_HIGH));
+    }
+    return x;
+  });
+  const REGS: JKFlipflop[] = new Array(size).fill(null).map((_, i) => {
+    const flipflop = new JKFlipflop(
+      forward(() => and(D[i], LD)),
+      forward(() => and(not(D[i]), LD))
+    );
+    return flipflop;
+  });
+  return {
+    ...groupFlip(...REGS),
     set(value: number) {
       for (let i = 0; i < size; i++) {
         if ((value >> i) & 1) {

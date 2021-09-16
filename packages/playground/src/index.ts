@@ -1,5 +1,6 @@
 import { prototype1 } from "../../core/src";
 import { oneTick } from "../../core/src/instrs/flipflop";
+/// <reference types="vite/client" />
 
 const program = new Uint8Array([
   // mov a 0
@@ -8,7 +9,9 @@ const program = new Uint8Array([
   // 0b11100,
   // 0b00000001,
   0b1000,
-  0b00100000,12,0,
+  0b00100000,
+  12,
+  0,
   // -> call fib
   // mov c, [fib]
   0b1000,
@@ -90,56 +93,87 @@ const program = new Uint8Array([
 // );
 
 const fib = new Uint8Array([
-
   // mov a<-b
-  0b1001,0b00010010,
+  0b1001,
+  0b00010010,
   // add a<- d
-  0b100, 0b00010100,
+  0b100,
+  0b00010100,
   // jnz: positive,
-  0b10111, 10, 1,
+  0b10110111,
+  0b00001111,
+  4,
   // mov b<-a
-  0b1001,0b00100001, 
+  0b1001,
+  0b00100001,
   // ret
   0b11001,
   // positive:
   // dec a
-  0b1101, 0b00010001,
+  0b1101,
+  0b00010001,
   // jnz: still positive
-  0b10111, 20, 1,
+  0b110111,
+  0b1111,
+  8,
+  0,
   // inc a
-  0b1100, 0b00010001,
+  // 0b1100, 0b00010001,
+  0b10000110,
+  0b00010001,
+  1,
   // mov b<-a
-  0b1001,0b00100001,
+  0b1001,
+  0b00100001,
   // ret
   0b11001,
   // still positive
   // push a
-  0b11100, 0b00000001, // store the value
+  0b11100,
+  0b00000001, // store the value
   // mov b<-a
-  0b1001,0b00100001,
+  0b1001,
+  0b00100001,
   // mov c, [fib]
-  0b1000, 0b00110000, 0, 1,
+  0b1000,
+  0b00110000,
+  0,
+  1,
   // call c
-  0b11000, 0b00000011,
+  0b11000,
+  0b00000011,
   // pop a
-  0b11101, 0b00010000,
-  // push b 
-  0b11100,0b00000010,
+  0b11101,
+  0b00010000,
+  // push b
+  0b11100,
+  0b00000010,
   // dec a
-  0b1101, 0b00010001,
+  // 0b1101, 0b00010001,
+  0b10000111,
+  0b00010001,
+  1, // dec a ->  sub a,1
   // mov b<-a
-  0b1001,0b00100001,
+  0b1001,
+  0b00100001,
   // -> call fib
   // mov c, [fib]
-  0b1000, 0b00110000, 0, 1,
+  0b1000,
+  0b00110000,
+  0,
+  1,
   // call c
-  0b11000, 0b00000011,
+  0b11000,
+  0b00000011,
   // pop a
-  0b11101, 0b00010000,
+  0b11101,
+  0b00010000,
   // add a<-b
-  0b100, 0b00010010,
+  0b100,
+  0b00010010,
   // mov b<-a
-  0b1001,0b00100001,
+  0b1001,
+  0b00100001,
   // ret
   0b11001,
 ]);
@@ -148,20 +182,6 @@ const fib = new Uint8Array([
 program.set(fib, 0x100);
 
 const go = prototype1(
-  //   new Uint8Array([
-  //     0b001000,
-  //     0b00100000,
-  //     0xfd,
-  //     0x7, // MOV B, 0x7fd
-  //     0b001001,
-  //     0b00010010, // MOV A,B
-  //     0b001010,
-  //     0b00100000, // MOV B, [0x05]
-  //     0x05,
-  //     0x0, // imm: 0x05 (address)
-  //     0x8f,
-  //     0x10, // constant 0x108f
-  //   ])
   program
 );
 go.intercept();
